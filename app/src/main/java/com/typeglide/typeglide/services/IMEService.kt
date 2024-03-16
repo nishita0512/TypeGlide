@@ -1,4 +1,4 @@
-package com.typeglide.typeglide
+package com.typeglide.typeglide.services
 
 import android.view.View
 import androidx.lifecycle.*
@@ -6,14 +6,23 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.typeglide.typeglide.Constants
+import com.typeglide.typeglide.EnglishComposeKeyboardView
+import com.typeglide.typeglide.HinglishComposeKeyboardView
 
 class IMEService : LifeCycleInputMethodService(),
     ViewModelStoreOwner,
     SavedStateRegistryOwner {
 
     override fun onCreateInputView(): View {
-        val view = ComposeKeyboardView(this)
-
+        val preferences = getSharedPreferences(Constants.SHARED_PREFERENCES_NAME, MODE_PRIVATE)
+        val language = preferences.getString("language", "english")
+        val view = if(language.equals("english")){
+            EnglishComposeKeyboardView(this)
+        }
+        else{
+            HinglishComposeKeyboardView(this)
+        }
         window?.window?.decorView?.let { decorView ->
             decorView.setViewTreeLifecycleOwner(this)
             decorView.setViewTreeViewModelStoreOwner(this)

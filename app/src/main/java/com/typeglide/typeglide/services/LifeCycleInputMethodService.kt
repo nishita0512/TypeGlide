@@ -1,4 +1,4 @@
-package com.typeglide.typeglide
+package com.typeglide.typeglide.services
 
 import android.content.Intent
 import android.inputmethodservice.InputMethodService
@@ -22,10 +22,6 @@ abstract class LifeCycleInputMethodService : InputMethodService(), LifecycleOwne
     }
 
 
-    // this method is added only to annotate it with @CallSuper.
-    // In usual service super.onStartCommand is no-op, but in LifecycleService
-    // it results in mDispatcher.onServicePreSuperOnStart() call, because
-    // super.onStartCommand calls onStart().
     @CallSuper
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return super.onStartCommand(intent, flags, startId)
