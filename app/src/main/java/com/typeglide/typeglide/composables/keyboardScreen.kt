@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -43,14 +44,14 @@ import kotlin.math.sqrt
 fun KeyboardScreen(keys: Array<Array<KeyboardButton>>){
 
     val circularRadius = ArrayList<Double>()
-    val canvasWidth = remember{ mutableStateOf(0f) }
-    val canvasHeight = remember{ mutableStateOf(0f) }
+    val canvasWidth = remember{ mutableFloatStateOf(0f) }
+    val canvasHeight = remember{ mutableFloatStateOf(0f) }
     val textMeasurer = rememberTextMeasurer()
     val ctx = LocalContext.current
     val configuration = LocalConfiguration.current
     val dragStartOffset = remember{ mutableStateOf(Offset(0f,0f)) }
-    val dragEndX = remember{ mutableStateOf(0f)}
-    val dragEndY = remember{ mutableStateOf(0f)}
+    val dragEndX = remember{ mutableFloatStateOf(0f)}
+    val dragEndY = remember{ mutableFloatStateOf(0f)}
 
     Canvas(
         modifier = Modifier
@@ -334,7 +335,7 @@ fun KeyboardScreen(keys: Array<Array<KeyboardButton>>){
             "Backspace",
             this,
             textMeasurer,
-            14.sp,
+            14.sp, 
             FontWeight.Bold
         )
 
@@ -490,38 +491,38 @@ fun determineSwipeKey(dragStartX: Double, dragStartY: Double, dragEndX: Double, 
     }
 
 }
-
-@Preview(showBackground = true)
-@Composable
-fun KeyboardScreenPreview(){
-    val backspace = 8
-    KeyboardScreen(arrayOf(
-        arrayOf(
-            KeyboardButton('m', '~', null, null, '\n'),
-            KeyboardButton('t', '$', '<', null, 'j'),
-            KeyboardButton('i', '"', '?', null, 'c'),
-            KeyboardButton('a', ':', '[', null, 'u'),
-            KeyboardButton('e', ']', ';', null, 'b'),
-            KeyboardButton('h', '%', '/', null, 'g'),
-            KeyboardButton('o', '>', '&', null, 'v'),
-            KeyboardButton('p', null, '\\', null, '#'),
-        ),
-        arrayOf(
-            KeyboardButton('y', '*', null, '^', '{'),
-            KeyboardButton('r', 'f', '(', '.', '\''),
-            KeyboardButton(' ', null, null, null, null),
-            KeyboardButton('s', ')', 'w', ',', '_'),
-            KeyboardButton('d', null, '@', '|', '}'),
-        ),
-        arrayOf(
-            KeyboardButton('l', '-', null, 'x', null),
-            KeyboardButton('k', '=', '+', 'z', null),
-            KeyboardButton('n', '`', '!', 'q', null),
-            KeyboardButton('0', null, null, null, null),
-        ),
-        arrayOf(
-            KeyboardButton(backspace.toChar(), null, null, null, null)
-        )
-    ))
-}
+//
+//@Preview(showBackground = true)
+//@Composable
+//fun KeyboardScreenPreview(){
+//    val backspace = 8
+//    KeyboardScreen(arrayOf(
+//        arrayOf(
+//            KeyboardButton('m', '~', null, null, '\n'),
+//            KeyboardButton('t', '$', '<', null, 'j'),
+//            KeyboardButton('i', '"', '?', null, 'c'),
+//            KeyboardButton('a', ':', '[', null, 'u'),
+//            KeyboardButton('e', ']', ';', null, 'b'),
+//            KeyboardButton('h', '%', '/', null, 'g'),
+//            KeyboardButton('o', '>', '&', null, 'v'),
+//            KeyboardButton('p', null, '\\', null, '#'),
+//        ),
+//        arrayOf(
+//            KeyboardButton('y', '*', null, '^', '{'),
+//            KeyboardButton('r', 'f', '(', '.', '\''),
+//            KeyboardButton(' ', null, null, null, null),
+//            KeyboardButton('s', ')', 'w', ',', '_'),
+//            KeyboardButton('d', null, '@', '|', '}'),
+//        ),
+//        arrayOf(
+//            KeyboardButton('l', '-', null, 'x', null),
+//            KeyboardButton('k', '=', '+', 'z', null),
+//            KeyboardButton('n', '`', '!', 'q', null),
+//            KeyboardButton('0', null, null, null, null),
+//        ),
+//        arrayOf(
+//            KeyboardButton(backspace.toChar(), null, null, null, null)
+//        )
+//    ))
+//}
 
