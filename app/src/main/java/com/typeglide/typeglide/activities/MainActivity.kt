@@ -121,40 +121,6 @@ fun Options() {
     }
 }
 
-//@Composable
-//fun LanguageDropdownMenu(
-//    selectedLanguage: String,
-//    onLanguageSelected: (String) -> Unit
-//) {
-//    val expanded = remember { mutableStateOf(false) }
-//    val languages = listOf("English", "Hinglish")
-//
-//    Box(
-//        modifier = Modifier.fillMaxWidth()
-//    ) {
-//        Log.d("LanguageDropdownMenu", selectedLanguage)
-//        TextButton(onClick = { expanded.value = true }) {
-//            Text(text = selectedLanguage)
-//        }
-//        DropdownMenu(
-//            modifier = Modifier.fillMaxWidth(),
-//            expanded = expanded.value,
-//            onDismissRequest = { expanded.value = false }
-//        ) {
-//            languages.forEach { language ->
-//                DropdownMenuItem(
-//                    text = { Text(text = language) },
-//                    onClick = {
-//                        Log.d("DropdownMenuItemClicked", language)
-//                        expanded.value = false
-//                        onLanguageSelected(language)
-//                    }
-//                )
-//            }
-//        }
-//    }
-//}
-
 @Composable
 fun LanguageDropdownMenu(
     selectedLanguage: String,
