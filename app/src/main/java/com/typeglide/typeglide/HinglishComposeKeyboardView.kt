@@ -12,30 +12,30 @@ class HinglishComposeKeyboardView(context: Context) : AbstractComposeView(contex
         KeyboardScreen(
             arrayOf(
                 arrayOf(
-                    KeyboardButton('d', '~', null, null, '\n'),
-                    KeyboardButton('e', '$', '<', null, 'z'),
-                    KeyboardButton('h', '"', '?', null, 'y'),
-                    KeyboardButton('i', ':', '[', null, 'p'),
-                    KeyboardButton('a', ']', ';', null, 'j'),
-                    KeyboardButton('t', '%', '/', null, 'b'),
-                    KeyboardButton('k', '>', '&', null, 'v'),
-                    KeyboardButton('l', null, '\\', null, '#'),
+                    KeyboardButton('d', '~', null, null, '\n', 1),
+                    KeyboardButton('e', '$', '<', null, 'z', 1),
+                    KeyboardButton('h', '"', '?', null, 'y', 1),
+                    KeyboardButton('i', ':', '[', null, 'p', 1),
+                    KeyboardButton('a', ']', ';', null, 'j', 1),
+                    KeyboardButton('t', '%', '/', null, 'b', 1),
+                    KeyboardButton('k', '>', '&', null, 'v', 1),
+                    KeyboardButton('l', null, '\\', null, '#', 1),
                 ),
                 arrayOf(
-                    KeyboardButton('g', '*', null, '^', '{'),
-                    KeyboardButton('s', 'u', '(', '.', '\''),
-                    KeyboardButton(' ', null, null, null, null),
-                    KeyboardButton('r', ')', 'c', ',', '_'),
-                    KeyboardButton('m', null, '@', '|', '}'),
+                    KeyboardButton('g', '*', null, '^', '{', 1),
+                    KeyboardButton('s', 'u', '(', '.', '\'', 1),
+                    KeyboardButton(' ', null, null, null, null, 2),
+                    KeyboardButton('r', ')', 'c', ',', '_', 1),
+                    KeyboardButton('m', null, '@', '|', '}', 1),
                 ),
                 arrayOf(
-                    KeyboardButton('o', '-', null, 'f', null),
-                    KeyboardButton('w', '=', '+', 'x', null),
-                    KeyboardButton('n', '`', '!', 'q', null),
-                    KeyboardButton('0', null, null, null, null),
+                    KeyboardButton('o', '-', null, 'f', null, 1),
+                    KeyboardButton('w', '=', '+', 'x', null, 1),
+                    KeyboardButton('n', '`', '!', 'q', null, 1),
+                    KeyboardButton('0', null, null, null, null, 1),
                 ),
                 arrayOf(
-                    KeyboardButton('1', null, null, null, null)
+                    KeyboardButton('1', null, null, null, null, 1)
                 )
             )
         )
