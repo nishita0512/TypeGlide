@@ -2,10 +2,9 @@ package com.typeglide.typeglide.composables
 
 import android.content.Context
 import android.util.Log
+import android.view.inputmethod.ExtractedTextRequest
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
@@ -24,9 +23,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -43,11 +40,9 @@ import com.typeglide.typeglide.models.KeyboardButton
 import com.typeglide.typeglide.services.IMEService
 import com.typeglide.typeglide.utils.KeyTextMode
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.Math.pow
-import java.util.Arrays
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.pow
@@ -59,49 +54,49 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
 
     val numKeys = arrayOf(
         arrayOf(
-            KeyboardButton('1', null, null, null, '\n', 1),
-            KeyboardButton('2', null, null, null, null, 1),
-            KeyboardButton('3', null, null, null, null, 1),
-            KeyboardButton('4', null, null, null, null, 1),
-            KeyboardButton('5', null, null, null, null, 1),
-            KeyboardButton('6', null, null, null, null, 1),
+            KeyboardButton("1", null, null, null, "Enter", 1),
+            KeyboardButton("2", null, null, null, null, 1),
+            KeyboardButton("3", null, null, null, null, 1),
+            KeyboardButton("4", null, null, null, null, 1),
+            KeyboardButton("5", null, null, null, null, 1),
+            KeyboardButton("6", null, null, null, null, 1),
         ),
         arrayOf(
-            KeyboardButton('7', null, null, null, null, 1),
-            KeyboardButton(' ', null, null, null, null, 2),
-            KeyboardButton('8', null, null, null, null, 1),
+            KeyboardButton("7", null, null, null, null, 1),
+            KeyboardButton("Space", null, null, null, null, 2),
+            KeyboardButton("8", null, null, null, null, 1),
         ),
         arrayOf(
-            KeyboardButton('9', null, null, null, null, 1),
-            KeyboardButton('0', null, null, null, null, 1),
-            KeyboardButton('a', null, null, null, null, 1),
+            KeyboardButton("9", null, null, null, null, 1),
+            KeyboardButton("0", null, null, null, null, 1),
+            KeyboardButton("ABC", null, null, null, null, 1),
         ),
         arrayOf(
-            KeyboardButton('b', null, null, null, null, 1)
+            KeyboardButton("Backspace", null, null, null, null, 1)
         )
     )
 
     val quickActionKeys = arrayOf(
         arrayOf(
-            KeyboardButton('a', null, null, null, null, 1),
-            KeyboardButton('b', null, null, null, null, 1),
-            KeyboardButton('c', null, null, null, null, 1),
-            KeyboardButton('d', null, null, null, null, 1),
-            KeyboardButton('e', null, null, null, null, 1),
-            KeyboardButton('f', null, null, null, null, 1),
+            KeyboardButton("Close", null, null, null, null, 1),
+            KeyboardButton("Redo", null, null, null, null, 1),
+            KeyboardButton("Undo", null, null, null, null, 1),
+            KeyboardButton("UPPER", null, null, null, null, 1),
+            KeyboardButton("lower", null, null, null, null, 1),
+            KeyboardButton("Select all", null, null, null, null, 1),
         ),
         arrayOf(
-            KeyboardButton('g', null, null, null, null, 1),
-            KeyboardButton('h', null, null, null, null, 1),
-            KeyboardButton('i', null, null, null, null, 1),
+            KeyboardButton("Copy", null, null, null, null, 1),
+            KeyboardButton("Paste", null, null, null, null, 1),
+            KeyboardButton("Cut", null, null, null, null, 1),
         ),
         arrayOf(
-            KeyboardButton('j', null, null, null, null, 1),
-            KeyboardButton('k', null, null, null, null, 1),
-            KeyboardButton('0', null, null, null, null, 1),
+            KeyboardButton("Clear", null, null, null, null, 1),
+            KeyboardButton("DS", null, null, null, null, 1),
+            KeyboardButton("DW", null, null, null, null, 1),
         ),
         arrayOf(
-            KeyboardButton('1', null, null, null, null, 1)
+            KeyboardButton("Backspace", null, null, null, null, 1)
         )
     )
 
@@ -116,7 +111,7 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
     val pressStartTime = remember{ mutableLongStateOf(0L) }
     val pressStartOffset = remember{ mutableStateOf(Offset(0f,0f)) }
     val pressEndOffset = remember{ mutableStateOf(Offset(0f,0f)) }
-    val longPressJob = remember{ mutableStateOf<Job?>(null) }
+    val longPressJobs = remember{ ArrayList<Job?>() }
     val coroutineScope = rememberCoroutineScope()
     val currentKeys = remember { mutableStateOf(textKeys) }
 
@@ -143,7 +138,7 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                                 )
                                 // Start Key is Backspace
                                 if(distance<circularRadius[0]) {
-                                    longPressJob.value = coroutineScope.launch {
+                                    longPressJobs.add(coroutineScope.launch {
                                         delay(1000)
                                         Log.d(
                                             "Long Press Performed",
@@ -151,7 +146,7 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                                         )
                                         lastLayoutMode.value = layoutMode.value
                                         layoutMode.value = KeyTextMode.QuickActionMode
-                                    }
+                                    })
                                 }
                             }
                             PointerEventType.Release -> {
@@ -160,8 +155,10 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                                     val duration = System.currentTimeMillis() - pressStartTime.longValue
                                     Log.d("Tap Release","Press ended after $duration")
 
-                                    longPressJob.value?.cancel()
-                                    longPressJob.value = null
+                                    if(longPressJobs.isNotEmpty()) {
+                                        longPressJobs[0]?.cancel()
+                                        longPressJobs.removeAt(0)
+                                    }
 
                                     pressEndOffset.value = event.changes[0].position
 
@@ -195,7 +192,6 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                                         //Start Key is Backspace
                                         if(distance<circularRadius[circularRadius.size-1]){
                                             quickActionDragPerformed(
-                                                pressStartOffset.value,
                                                 pressEndOffset.value,
                                                 centerX,
                                                 centerY,
@@ -248,6 +244,7 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                         }
                     }
                 }
+//                return@pointerInput
             }
     ) {
         currentKeys.value = when(layoutMode.value){
@@ -337,7 +334,6 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                         currentKeys.value[currentRowNo][keyCount].top.toString()
 
                     rotatedText(
-                        layoutMode.value,
                         (centerAngle + 90).toFloat(),
                         topTextX,
                         topTextY,
@@ -359,7 +355,6 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                         currentKeys.value[currentRowNo][keyCount].bottom.toString()
 
                     rotatedText(
-                        layoutMode.value,
                         (centerAngle + 90).toFloat(),
                         bottomTextX,
                         bottomTextY,
@@ -377,10 +372,9 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                     val centerTextX =
                         startPoint.x + (imaginaryLength * cos(centerAngleRadians)).toFloat()
                     val centerTextOfKey =
-                        currentKeys.value[currentRowNo][keyCount].center.toString()
+                        currentKeys.value[currentRowNo][keyCount].center
 
                     rotatedText(
-                        layoutMode.value,
                         (centerAngle + 90).toFloat(),
                         centerTextX,
                         centerTextY,
@@ -402,7 +396,6 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                         currentKeys.value[currentRowNo][keyCount].left.toString()
 
                     rotatedText(
-                        layoutMode.value,
                         (leftTextAngle + 90).toFloat(),
                         leftTextX,
                         leftTextY,
@@ -424,7 +417,6 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                         currentKeys.value[currentRowNo][keyCount].right.toString()
 
                     rotatedText(
-                        layoutMode.value,
                         (rightTextAngle + 90).toFloat(),
                         rightTextX,
                         rightTextY,
@@ -449,7 +441,6 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
 }
 
 fun rotatedText(
-    mode: KeyTextMode,
     degrees: Float,
     textX: Float,
     textY: Float,
@@ -462,44 +453,15 @@ fun rotatedText(
     if(text=="null"){
         return
     }
-    val updatedText = when(mode){
-        KeyTextMode.TextMode -> {
-            when(text){
-                "0"->{"NUM"}
-                "1"->{"Backspace"}
-                " "->{"Space"}
-                "\n"->{"Enter"}
-                else->{text}
-            }
-        }
-        KeyTextMode.NumMode -> {
-            when(text){
-                "a"->{"NUM"}
-                "b"->{"Backspace"}
-                " "->{"Space"}
-                "\n"->{"Enter"}
-                else->{text}
-            }
-        }
-        KeyTextMode.QuickActionMode -> {
-            when(text){
-                "0"->{"NUM"}
-                "1"->{"Backspace"}
-                " "->{"Space"}
-                else->{text}
-            }
-        }
-    }
     drawScope.rotate(degrees,Offset(textX, textY)){
         drawIntoCanvas {
             val textLayoutResult = textMeasurer.measure(
-                text = updatedText,
+                text = text,
                 style = TextStyle(fontSize = textSize, fontWeight = fontWeight)
             )
-            Log.d("Text", "Text: $updatedText Text Size: $textSize Font Weight: $fontWeight Degrees: $degrees")
             drawText(
                 textMeasurer = textMeasurer,
-                text = updatedText,
+                text = text,
                 topLeft = Offset(
                     textX-(textLayoutResult.size.width/2f),
                     textY-(textLayoutResult.size.height/2f)
@@ -579,7 +541,24 @@ fun determineKey(
                 }
             }
             KeyTextMode.QuickActionMode -> {
-
+                if (angle in -180.0..-165.0) {
+                    return keyArray[0][0]
+                }
+                else if (angle in -165.0..-150.0){
+                    return keyArray[0][1]
+                }
+                else if (angle in -150.0..-135.0){
+                    return keyArray[0][2]
+                }
+                else if (angle in -135.0..-120.0){
+                    return keyArray[0][3]
+                }
+                else if (angle in -120.0..-105.0){
+                    return keyArray[0][4]
+                }
+                else if (angle in -105.0..-90.0){
+                    return keyArray[0][5]
+                }
             }
         }
 
@@ -615,7 +594,15 @@ fun determineKey(
                 }
             }
             KeyTextMode.QuickActionMode -> {
-
+                if (angle in -180.0..-150.0) {
+                    return keyArray[1][0]
+                }
+                else if (angle in -150.0..-120.0){
+                    return keyArray[1][1]
+                }
+                else if (angle in -120.0..-90.0){
+                    return keyArray[1][2]
+                }
             }
         }
 
@@ -648,23 +635,21 @@ fun determineKey(
                 }
             }
             KeyTextMode.QuickActionMode -> {
-
+                if (angle in -180.0..-150.0) {
+                    return keyArray[2][0]
+                }
+                else if (angle in -150.0..-120.0){
+                    return keyArray[2][1]
+                }
+                else if (angle in -120.0..-90.0){
+                    return keyArray[2][2]
+                }
             }
         }
 
     }
     else if(circularRadius[3]>distance){
-        when(mode){
-            KeyTextMode.TextMode -> {
-                return keyArray[3][0]
-            }
-            KeyTextMode.NumMode -> {
-                return keyArray[3][0]
-            }
-            KeyTextMode.QuickActionMode -> {
-
-            }
-        }
+        return keyArray[3][0]
     }
 
     return null
@@ -711,6 +696,73 @@ fun determineSwipeKey(
 
 }
 
+fun performQuickAction(
+    key: KeyboardButton,
+    currentContext: Context
+){
+    Log.d("Quick Action", "Perform quick Action Function Called, Key: ${key.center}")
+    when(key.center){
+        "Close" -> {
+
+        }
+        "Redo" -> {
+
+        }
+        "Undo" -> {
+
+        }
+        "UPPER" -> {
+
+        }
+        "lower" -> {
+
+        }
+        "Select all" -> {
+            Log.d("Quick Action", "Select All Action Called")
+            (currentContext as IMEService).currentInputConnection.performContextMenuAction(android.R.id.selectAll)
+        }
+        "Copy" -> {
+            Log.d("Quick Action", "Copy Action Called")
+            (currentContext as IMEService).currentInputConnection.performContextMenuAction(android.R.id.copy)
+        }
+        "Paste" -> {
+            Log.d("Quick Action", "Paste Action Called")
+            (currentContext as IMEService).currentInputConnection.performContextMenuAction(android.R.id.paste)
+        }
+        "Cut" -> {
+            Log.d("Quick Action", "Cut Action Called")
+            (currentContext as IMEService).currentInputConnection.performContextMenuAction(android.R.id.cut)
+        }
+        "Clear" -> {
+            Log.d("Quick Action", "Clear Action Called")
+            (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
+                Int.MAX_VALUE,
+                Int.MAX_VALUE
+            )
+        }
+        "DS" -> {
+            // Handle DS (Delete last Sentence) action
+            val currentText = (currentContext as IMEService).currentInputConnection?.getExtractedText(ExtractedTextRequest(), 0)?.text ?: ""
+            val lastSentenceEnd = currentText.lastIndexOf('.')
+            if (lastSentenceEnd != -1) {
+                currentContext.currentInputConnection?.deleteSurroundingText(currentText.length - lastSentenceEnd, 0)
+            }
+        }
+        "DW" -> {
+            // Handle DW (Delete last Word) action
+            val currentText = (currentContext as IMEService).currentInputConnection?.getExtractedText(ExtractedTextRequest(), 0)?.text ?: ""
+            val lastSentenceEnd = currentText.lastIndexOf(' ')
+            if (lastSentenceEnd != -1) {
+                currentContext.currentInputConnection?.deleteSurroundingText(currentText.length - lastSentenceEnd, 0)
+            }
+        }
+        "Backspace" -> {}
+        else -> {
+            Log.d("Quick Action", "Invalid Action")
+        }
+    }
+}
+
 fun textTapPerformed(
     tapCoordinates: Offset,
     centerX: Double,
@@ -736,18 +788,24 @@ fun textTapPerformed(
         return
     }
 
-    val textToInsert = key.center.toString()
+    var textToInsert = key.center
+
+    textToInsert = when(textToInsert){
+        "Space" -> { " " }
+        "Enter" -> { "\n" }
+        else -> { textToInsert }
+    }
 
     when(layoutMode.value){
         KeyTextMode.TextMode -> {
             when(textToInsert){
-                '1'.toString() -> {
+                "Backspace" -> {
                     (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
                         1,
                         0
                     )
                 }
-                '0'.toString() -> {
+                "0-9" -> {
                     layoutMode.value = KeyTextMode.NumMode
                 }
                 else -> {
@@ -760,13 +818,13 @@ fun textTapPerformed(
         }
         KeyTextMode.NumMode -> {
             when(textToInsert) {
-                'b'.toString() -> {
+                "Backspace" -> {
                     (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
                         1,
                         0
                     )
                 }
-                'a'.toString() -> {
+                "ABC" -> {
                     layoutMode.value = KeyTextMode.TextMode
                 }
                 else -> {
@@ -803,6 +861,7 @@ fun textLongPressPerformed(
     if (distance < circularRadius[3]) {
         Log.d("Long Press Performed", "Quick Action Mode Deactivated")
         layoutMode.value = lastLayoutMode.value
+        return
     }
 
     val key = determineKey(
@@ -818,22 +877,56 @@ fun textLongPressPerformed(
         return
     }
 
-    val textToInsert = key.center.toString()
+    var textToInsert = key.center
 
-
-    if (textToInsert == '1'.toString()) {
-        (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
-            1,
-            0
-        )
-    } else if (textToInsert == '0'.toString()) {
-        layoutMode.value = KeyTextMode.NumMode
-    } else {
-        (currentContext as IMEService).currentInputConnection.commitText(
-            textToInsert,
-            1
-        )
+    textToInsert = when(textToInsert){
+        "Space" -> { " " }
+        "Enter" -> { "\n" }
+        else -> { textToInsert }
     }
+
+    when(layoutMode.value){
+        KeyTextMode.TextMode -> {
+            when(textToInsert){
+                "Backspace" -> {
+                    (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
+                        1,
+                        0
+                    )
+                }
+                "0-9" -> {
+                    layoutMode.value = KeyTextMode.NumMode
+                }
+                else -> {
+                    (currentContext as IMEService).currentInputConnection.commitText(
+                        textToInsert,
+                        1
+                    )
+                }
+            }
+        }
+        KeyTextMode.NumMode -> {
+            when(textToInsert) {
+                "Backspace" -> {
+                    (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
+                        1,
+                        0
+                    )
+                }
+                "ABC" -> {
+                    layoutMode.value = KeyTextMode.TextMode
+                }
+                else -> {
+                    (currentContext as IMEService).currentInputConnection.commitText(
+                        textToInsert,
+                        1
+                    )
+                }
+            }
+        }
+        KeyTextMode.QuickActionMode -> {}
+    }
+
 }
 
 fun textDragPerformed(
@@ -868,7 +961,7 @@ fun textDragPerformed(
         return
     }
 
-    val textToInsert = determineSwipeKey(
+    var textToInsert = determineSwipeKey(
         dragStartOffset.x.toDouble(),
         dragStartOffset.y.toDouble(),
         dragEndOffset.x.toDouble(),
@@ -881,6 +974,12 @@ fun textDragPerformed(
         return
     }
 
+    textToInsert = when(textToInsert){
+        "Space" -> { " " }
+        "Enter" -> { "\n" }
+        else -> { textToInsert }
+    }
+
     (currentContext as IMEService).currentInputConnection.commitText(
         textToInsert,
         1
@@ -888,7 +987,6 @@ fun textDragPerformed(
 }
 
 fun quickActionDragPerformed(
-    startOffset: Offset,
     endOffset: Offset,
     centerX: Double,
     centerY: Double,
@@ -902,40 +1000,59 @@ fun quickActionDragPerformed(
         return
     }
     Log.d("Quick Action", "Quick Action Drag Performed Function Called")
+
+    val key = determineKey(
+        layoutMode.value,
+        keys,
+        endOffset.x.toDouble(),
+        endOffset.y.toDouble(),
+        centerX,
+        centerY,
+        circularRadius
+    )
+
+    if (key == null) {
+        return
+    }
+
+    performQuickAction(
+        key,
+        currentContext
+    )
+
     layoutMode.value = lastLayoutMode.value
 }
 
 @Preview(showBackground = true)
 @Composable
 fun KeyboardScreenPreview(){
-    val backspace = 8
     KeyboardScreen(
         arrayOf(
             arrayOf(
-                KeyboardButton('m', '~', null, null, '\n', 1),
-                KeyboardButton('t', '$', '<', null, 'j', 1),
-                KeyboardButton('i', '"', '?', null, 'c', 1),
-                KeyboardButton('a', ':', '[', null, 'u', 1),
-                KeyboardButton('e', ']', ';', null, 'b', 1),
-                KeyboardButton('h', '%', '/', null, 'g', 1),
-                KeyboardButton('o', '>', '&', null, 'v', 1),
-                KeyboardButton('p', null, '\\', null, '#', 1),
+                KeyboardButton("m", "~", null, null, "\n", 1),
+                KeyboardButton("t", "$", "<", null, "j", 1),
+                KeyboardButton("i", "\"", "?", null, "c", 1),
+                KeyboardButton("a", ":", "[", null, "u", 1),
+                KeyboardButton("e", "]", ";", null, "b", 1),
+                KeyboardButton("h", "%", "/", null, "g", 1),
+                KeyboardButton("o", ">", "&", null, "v", 1),
+                KeyboardButton("p", null, "\\", null, "#", 1),
             ),
             arrayOf(
-                KeyboardButton('y', '*', null, '^', '{', 1),
-                KeyboardButton('r', 'f', '(', '.', '\'', 1),
-                KeyboardButton(' ', null, null, null, null, 2),
-                KeyboardButton('s', ')', 'w', ',', '_', 1),
-                KeyboardButton('d', null, '@', '|', '}', 1),
+                KeyboardButton("y", "*", null, "^", "{", 1),
+                KeyboardButton("r", "f", "(", ".", "\'", 1),
+                KeyboardButton(" ", null, null, null, null, 2),
+                KeyboardButton("s", ")", "w", ",", "_", 1),
+                KeyboardButton("d", null, "@", "|", "}", 1),
             ),
             arrayOf(
-                KeyboardButton('l', '-', null, 'x', null, 1),
-                KeyboardButton('k', '=', '+', 'z', null, 1),
-                KeyboardButton('n', '`', '!', 'q', null, 1),
-                KeyboardButton('0', null, null, null, null, 1),
+                KeyboardButton("l", "-", null, "x", null, 1),
+                KeyboardButton("k", "=", "+", "z", null, 1),
+                KeyboardButton("n", "`", "!", "q", null, 1),
+                KeyboardButton("0-9", null, null, null, null, 1),
             ),
             arrayOf(
-                KeyboardButton('1', null, null, null, null, 1)
+                KeyboardButton("Backspace", null, null, null, null, 1)
             )
         )
     )
