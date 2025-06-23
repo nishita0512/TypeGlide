@@ -2,6 +2,7 @@ package com.typeglide.typeglide.composables
 
 import android.content.Context
 import android.util.Log
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -44,8 +45,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.Math.pow
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
+import kotlin.math.sign
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -102,6 +105,8 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
 
     val layoutMode = remember { mutableStateOf(KeyTextMode.TextMode) }
     val lastLayoutMode = remember { mutableStateOf(KeyTextMode.TextMode) }
+    val isCursorSwipeMode = remember { mutableStateOf(false) }
+    val lastCursorMovedTime = remember {mutableLongStateOf(0L)}
     val circularRadius = remember { ArrayList<Double>() }
     val canvasWidth = remember{ mutableFloatStateOf(0f) }
     val canvasHeight = remember{ mutableFloatStateOf(0f) }
@@ -114,6 +119,12 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
     val longPressJobs = remember{ ArrayList<Job?>() }
     val coroutineScope = rememberCoroutineScope()
     val currentKeys = remember { mutableStateOf(textKeys) }
+
+    when((currentContext as IMEService).currentInputEditorInfo.actionId){
+        EditorInfo.IME_ACTION_SEARCH, EditorInfo.IME_ACTION_GO, EditorInfo.IME_ACTION_SEND ->{
+            textKeys[0][0].bottom = (currentContext as IMEService).currentInputEditorInfo.actionLabel.toString()
+        }
+    }
 
     Canvas(
         modifier = Modifier
@@ -132,101 +143,88 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                                 pressStartTime.longValue = System.currentTimeMillis()
                                 pressStartOffset.value = event.changes[0].position
 
-                                val distance = sqrt(
-                                    abs(canvasWidth.floatValue.toDouble() - pressStartOffset.value.x).pow(2.0)
-                                            + abs(canvasHeight.floatValue.toDouble() - pressStartOffset.value.y).pow(2.0)
+                                val centerX = canvasWidth.floatValue.toDouble()
+                                val centerY = canvasHeight.floatValue.toDouble()
+                                val key = determineKey(
+                                    layoutMode.value,
+                                    currentKeys.value,
+                                    pressStartOffset.value.x.toDouble(),
+                                    pressStartOffset.value.y.toDouble(),
+                                    centerX,
+                                    centerY,
+                                    circularRadius
                                 )
-                                // Start Key is Backspace
-                                if(distance<circularRadius[0]) {
+
+                                if(key?.center == "Backspace") {
                                     longPressJobs.add(coroutineScope.launch {
-                                        delay(1000)
+                                        delay(750)
                                         Log.d(
-                                            "Long Press Performed",
+                                            "Backspace Long Press Performed",
                                             "Quick Action Mode Activated"
                                         )
                                         lastLayoutMode.value = layoutMode.value
                                         layoutMode.value = KeyTextMode.QuickActionMode
                                     })
                                 }
+
+                                if(key?.center == "Space"){
+                                    longPressJobs.add(coroutineScope.launch {
+                                        delay(750)
+                                        Log.d(
+                                            "Space Long Press Performed",
+                                            "Cursor Mode Activated"
+                                        )
+                                        isCursorSwipeMode.value = true
+                                    })
+                                }
+
                             }
                             PointerEventType.Release -> {
-                                // Press released
-                                if (pressStartOffset.value.x != 0f && pressStartOffset.value.y != 0f) {
-                                    val duration = System.currentTimeMillis() - pressStartTime.longValue
-                                    Log.d("Tap Release","Press ended after $duration")
+                                if(isCursorSwipeMode.value){
+                                    isCursorSwipeMode.value = false
+                                    continue
+                                }
+                                if (pressStartOffset.value.x == 0f && pressStartOffset.value.y == 0f) {
+                                    continue
+                                }
+                                val duration = System.currentTimeMillis() - pressStartTime.longValue
+                                Log.d("Tap Release","Press ended after $duration")
 
-                                    if(longPressJobs.isNotEmpty()) {
-                                        longPressJobs[0]?.cancel()
-                                        longPressJobs.removeAt(0)
-                                    }
+                                if(longPressJobs.isNotEmpty()) {
+                                    longPressJobs[0]?.cancel()
+                                    longPressJobs.removeAt(0)
+                                }
 
-                                    pressEndOffset.value = event.changes[0].position
+                                pressEndOffset.value = event.changes[0].position
 
-                                    val centerX = canvasWidth.floatValue.toDouble()
-                                    val centerY = canvasHeight.floatValue.toDouble()
-                                    val startKey = determineKey(
-                                        layoutMode.value,
-                                        currentKeys.value,
-                                        pressStartOffset.value.x.toDouble(),
-                                        pressStartOffset.value.y.toDouble(),
-                                        centerX,
-                                        centerY,
-                                        circularRadius
-                                    )
-                                    val endKey = determineKey(
-                                        layoutMode.value,
-                                        currentKeys.value,
-                                        pressEndOffset.value.x.toDouble(),
-                                        pressEndOffset.value.y.toDouble(),
-                                        centerX,
-                                        centerY,
-                                        circularRadius
-                                    )
+                                val centerX = canvasWidth.floatValue.toDouble()
+                                val centerY = canvasHeight.floatValue.toDouble()
+                                val startKey = determineKey(
+                                    layoutMode.value,
+                                    currentKeys.value,
+                                    pressStartOffset.value.x.toDouble(),
+                                    pressStartOffset.value.y.toDouble(),
+                                    centerX,
+                                    centerY,
+                                    circularRadius
+                                )
+                                val endKey = determineKey(
+                                    layoutMode.value,
+                                    currentKeys.value,
+                                    pressEndOffset.value.x.toDouble(),
+                                    pressEndOffset.value.y.toDouble(),
+                                    centerX,
+                                    centerY,
+                                    circularRadius
+                                )
 
-                                    if(startKey?.center != endKey?.center){
-                                        val distance = sqrt(
-                                            abs(canvasWidth.floatValue.toDouble() - pressStartOffset.value.x).pow(2.0)
-                                                    + abs(canvasHeight.floatValue.toDouble() - pressStartOffset.value.y).pow(2.0)
-                                        )
-                                        Log.d("Drag Performed", "Circular Radius: ${circularRadius.size} ${circularRadius.joinToString(",")}")
-                                        //Start Key is Backspace
-                                        if(distance<circularRadius[circularRadius.size-1]){
-                                            quickActionDragPerformed(
-                                                pressEndOffset.value,
-                                                centerX,
-                                                centerY,
-                                                circularRadius,
-                                                currentKeys.value,
-                                                currentContext,
-                                                lastLayoutMode,
-                                                layoutMode
-                                            )
-                                        }
-                                        textDragPerformed(
-                                            pressStartOffset.value,
+                                if(startKey?.center != endKey?.center){
+
+                                    Log.d("Drag Performed", "Circular Radius: ${circularRadius.size} ${circularRadius.joinToString(",")}")
+
+                                    if(startKey?.center == "Backspace"){
+                                        quickActionDragPerformed(
                                             pressEndOffset.value,
-                                            centerX,
-                                            centerY,
-                                            circularRadius,
-                                            currentKeys.value,
-                                            currentContext,
-                                            layoutMode
-                                        )
-                                    }
-                                    else if(duration<1000){
-                                        textTapPerformed(
-                                            pressStartOffset.value,
-                                            centerX,
-                                            centerY,
-                                            circularRadius,
-                                            currentKeys.value,
-                                            currentContext,
-                                            layoutMode
-                                        )
-                                    }
-                                    else{
-                                        textLongPressPerformed(
-                                            pressStartOffset.value,
                                             centerX,
                                             centerY,
                                             circularRadius,
@@ -237,9 +235,107 @@ fun KeyboardScreen(textKeys: Array<Array<KeyboardButton>>){
                                         )
                                     }
 
-                                    pressStartOffset.value = Offset(0f,0f)
-                                    pressStartTime.longValue = 0L
+                                    if(startKey?.center == "Space"){
+                                        val dx = pressEndOffset.value.x.toDouble() - pressStartOffset.value.x
+                                        val dy = pressEndOffset.value.y.toDouble() - pressStartOffset.value.y
+
+                                        val currentSwipeDistance = sqrt(
+                                            abs(dx).pow(2.0) +
+                                                    abs(dy).pow(2.0)
+                                        )
+
+                                        val unitDx = if(currentSwipeDistance != 0.0) (dx / currentSwipeDistance) else 0.0
+
+                                        Log.d("Pointer Event", "Cursor distance: $currentSwipeDistance $unitDx")
+
+                                        val inputConnection = (currentContext as IMEService).currentInputConnection
+
+                                        val movement = unitDx.sign.toInt()
+
+                                        if (inputConnection != null && abs(unitDx)>0.8) {
+                                            val currentCursorPosition = inputConnection.getExtractedText(ExtractedTextRequest(), 0)?.selectionStart ?: 0
+                                            val newCursorPosition = (currentCursorPosition + movement).coerceAtLeast(0)
+                                            inputConnection.setSelection(newCursorPosition, newCursorPosition)
+
+                                            Log.d("Pointer Event", "Cursor moved to position: $newCursorPosition")
+                                        }
+                                    }
+
+                                    textDragPerformed(
+                                        pressStartOffset.value,
+                                        pressEndOffset.value,
+                                        centerX,
+                                        centerY,
+                                        circularRadius,
+                                        currentKeys.value,
+                                        currentContext,
+                                        layoutMode
+                                    )
                                 }
+                                else if(duration<1000){
+                                    textTapPerformed(
+                                        pressStartOffset.value,
+                                        centerX,
+                                        centerY,
+                                        circularRadius,
+                                        currentKeys.value,
+                                        currentContext,
+                                        layoutMode
+                                    )
+                                }
+                                else{
+                                    textLongPressPerformed(
+                                        pressStartOffset.value,
+                                        centerX,
+                                        centerY,
+                                        circularRadius,
+                                        currentKeys.value,
+                                        currentContext,
+                                        lastLayoutMode,
+                                        layoutMode
+                                    )
+                                }
+                                pressStartOffset.value = Offset(0f,0f)
+                                pressStartTime.longValue = 0L
+                            }
+                            PointerEventType.Move -> {
+                                if(!isCursorSwipeMode.value){
+                                    continue
+                                }
+                                if(System.currentTimeMillis()-lastCursorMovedTime.longValue < 100 ){
+                                    continue
+                                }
+
+                                Log.d("Pointer Event", "Cursor Moving")
+
+                                val currentSwipeOffset = event.changes[0].position
+
+                                val dx = currentSwipeOffset.x.toDouble() - pressStartOffset.value.x
+                                val dy = currentSwipeOffset.y.toDouble() - pressStartOffset.value.y
+
+                                val currentSwipeDistance = sqrt(
+                                    abs(dx).pow(2.0) +
+                                            abs(dy).pow(2.0)
+                                )
+
+                                val unitDx = if(currentSwipeDistance != 0.0) (dx / currentSwipeDistance) else 0.0
+
+                                val scalingFactor = 1.1
+                                val horizontalMovement = (unitDx * scalingFactor).toInt()
+
+                                Log.d("Pointer Event", "Cursor distance: $currentSwipeDistance $unitDx")
+
+                                val inputConnection = (currentContext as IMEService).currentInputConnection
+
+                                if (inputConnection != null) {
+                                    val currentCursorPosition = inputConnection.getExtractedText(ExtractedTextRequest(), 0)?.selectionStart ?: 0
+                                    val newCursorPosition = (currentCursorPosition + horizontalMovement).coerceAtLeast(0)
+                                    inputConnection.setSelection(newCursorPosition, newCursorPosition)
+                                    lastCursorMovedTime.longValue = System.currentTimeMillis()
+
+                                    Log.d("Pointer Event", "Cursor moved to position: $newCursorPosition")
+                                }
+
                             }
                         }
                     }
@@ -701,9 +797,12 @@ fun performQuickAction(
     currentContext: Context
 ){
     Log.d("Quick Action", "Perform quick Action Function Called, Key: ${key.center}")
+    val imeService = (currentContext as IMEService)
     when(key.center){
         "Close" -> {
-
+            imeService.currentInputConnection.performEditorAction(
+                EditorInfo.IME_ACTION_DONE
+            )
         }
         "Redo" -> {
 
@@ -719,38 +818,36 @@ fun performQuickAction(
         }
         "Select all" -> {
             Log.d("Quick Action", "Select All Action Called")
-            (currentContext as IMEService).currentInputConnection.performContextMenuAction(android.R.id.selectAll)
+            imeService.currentInputConnection.performContextMenuAction(android.R.id.selectAll)
         }
         "Copy" -> {
             Log.d("Quick Action", "Copy Action Called")
-            (currentContext as IMEService).currentInputConnection.performContextMenuAction(android.R.id.copy)
+            imeService.currentInputConnection.performContextMenuAction(android.R.id.copy)
         }
         "Paste" -> {
             Log.d("Quick Action", "Paste Action Called")
-            (currentContext as IMEService).currentInputConnection.performContextMenuAction(android.R.id.paste)
+            imeService.currentInputConnection.performContextMenuAction(android.R.id.paste)
         }
         "Cut" -> {
             Log.d("Quick Action", "Cut Action Called")
-            (currentContext as IMEService).currentInputConnection.performContextMenuAction(android.R.id.cut)
+            imeService.currentInputConnection.performContextMenuAction(android.R.id.cut)
         }
         "Clear" -> {
             Log.d("Quick Action", "Clear Action Called")
-            (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
+            imeService.currentInputConnection.deleteSurroundingText(
                 Int.MAX_VALUE,
                 Int.MAX_VALUE
             )
         }
         "DS" -> {
-            // Handle DS (Delete last Sentence) action
-            val currentText = (currentContext as IMEService).currentInputConnection?.getExtractedText(ExtractedTextRequest(), 0)?.text ?: ""
+            val currentText = imeService.currentInputConnection?.getExtractedText(ExtractedTextRequest(), 0)?.text ?: ""
             val lastSentenceEnd = currentText.lastIndexOf('.')
             if (lastSentenceEnd != -1) {
                 currentContext.currentInputConnection?.deleteSurroundingText(currentText.length - lastSentenceEnd, 0)
             }
         }
         "DW" -> {
-            // Handle DW (Delete last Word) action
-            val currentText = (currentContext as IMEService).currentInputConnection?.getExtractedText(ExtractedTextRequest(), 0)?.text ?: ""
+            val currentText = imeService.currentInputConnection?.getExtractedText(ExtractedTextRequest(), 0)?.text ?: ""
             val lastSentenceEnd = currentText.lastIndexOf(' ')
             if (lastSentenceEnd != -1) {
                 currentContext.currentInputConnection?.deleteSurroundingText(currentText.length - lastSentenceEnd, 0)
@@ -790,9 +887,11 @@ fun textTapPerformed(
 
     var textToInsert = key.center
 
+    val imeService = currentContext as IMEService
+
     textToInsert = when(textToInsert){
         "Space" -> { " " }
-        "Enter" -> { "\n" }
+
         else -> { textToInsert }
     }
 
@@ -800,7 +899,7 @@ fun textTapPerformed(
         KeyTextMode.TextMode -> {
             when(textToInsert){
                 "Backspace" -> {
-                    (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
+                    imeService.currentInputConnection.deleteSurroundingText(
                         1,
                         0
                     )
@@ -809,7 +908,7 @@ fun textTapPerformed(
                     layoutMode.value = KeyTextMode.NumMode
                 }
                 else -> {
-                    (currentContext as IMEService).currentInputConnection.commitText(
+                    imeService.currentInputConnection.commitText(
                         textToInsert,
                         1
                     )
@@ -819,7 +918,7 @@ fun textTapPerformed(
         KeyTextMode.NumMode -> {
             when(textToInsert) {
                 "Backspace" -> {
-                    (currentContext as IMEService).currentInputConnection.deleteSurroundingText(
+                    imeService.currentInputConnection.deleteSurroundingText(
                         1,
                         0
                     )
@@ -828,7 +927,7 @@ fun textTapPerformed(
                     layoutMode.value = KeyTextMode.TextMode
                 }
                 else -> {
-                    (currentContext as IMEService).currentInputConnection.commitText(
+                    imeService.currentInputConnection.commitText(
                         textToInsert,
                         1
                     )
@@ -941,7 +1040,7 @@ fun textDragPerformed(
 ){
 
     val dragStartAngle = Math.toDegrees(
-        Math.atan2(
+        atan2(
             (dragStartOffset.y.toDouble() - centerY),
             (dragStartOffset.x.toDouble() - centerX)
         )
@@ -974,13 +1073,43 @@ fun textDragPerformed(
         return
     }
 
+    val imeService = currentContext as IMEService
+
+    Log.d("Action ID: ", imeService.currentInputEditorInfo.actionId.toString())
+    when(textToInsert) {
+        "Search" -> {
+            imeService.currentInputConnection.performEditorAction(
+                EditorInfo.IME_ACTION_SEARCH
+            )
+            return
+        }
+        "Send" -> {
+            imeService.currentInputConnection.performEditorAction(
+                EditorInfo.IME_ACTION_SEND
+            )
+            return
+        }
+        "Go" -> {
+            imeService.currentInputConnection.performEditorAction(
+                EditorInfo.IME_ACTION_GO
+            )
+            return
+        }
+        "Next" -> {
+            imeService.currentInputConnection.performEditorAction(
+                EditorInfo.IME_ACTION_NEXT
+            )
+            return
+        }
+    }
+
     textToInsert = when(textToInsert){
         "Space" -> { " " }
         "Enter" -> { "\n" }
         else -> { textToInsert }
     }
 
-    (currentContext as IMEService).currentInputConnection.commitText(
+    imeService.currentInputConnection.commitText(
         textToInsert,
         1
     )

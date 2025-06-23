@@ -1,10 +1,10 @@
 package com.typeglide.typeglide.models
 
 data class KeyboardButton(
-    val center: String,
-    val right: String?,
-    val left: String?,
-    val top: String?,
-    val bottom: String?,
-    val keySize: Int = 1
+    var center: String,
+    var right: String?,
+    var left: String?,
+    var top: String?,
+    var bottom: String?,
+    var keySize: Int = 1
 )

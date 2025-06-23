@@ -1,6 +1,5 @@
 package com.typeglide.typeglide.services
 
-import android.content.Intent
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -37,6 +36,17 @@ class IMEService : LifeCycleInputMethodService(),
 
     override fun onStartInputView(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(editorInfo, restarting)
+        if(editorInfo==null){
+            return
+        }
+        currentInputEditorInfo.actionId = editorInfo.imeOptions and EditorInfo.IME_MASK_ACTION
+        currentInputEditorInfo.actionLabel = when(currentInputEditorInfo.actionId){
+            2 -> "Go"
+            3 -> "Search"
+            4 -> "Send"
+            5 -> "Next"
+            else -> "Enter"
+        }
         setInputView(onCreateInputView())
     }
 
@@ -50,10 +60,7 @@ class IMEService : LifeCycleInputMethodService(),
     override val lifecycle: Lifecycle
         get() = dispatcher.lifecycle
 
-    //ViewModelStore Methods
     private val store = ViewModelStore()
-
-    //SaveStateRegestry Methods
 
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
 
